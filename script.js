@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const EVENTS_DELAY = 20000;
+    const EVENTS_DELAY = 5000;  // Reduced delay to 5 seconds
     const MAX_KEYS_PER_GAME_PER_DAY = 600;
 
     const games = {
