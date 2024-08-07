@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const EVENTS_DELAY = 20000;
-    const MAX_KEYS_PER_GAME_PER_DAY = Infinity;
+    const MAX_KEYS_PER_GAME_PER_DAY = Infinity; // No limit on key generation
 
     const games = {
         1: {
@@ -141,10 +141,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const storageKey = `keys_generated_${game.name}`;
         const storedData = JSON.parse(localStorage.getItem(storageKey));
 
-        if (storedData.count + keyCount > MAX_KEYS_PER_GAME_PER_DAY) {
-            alert(`You can generate only ${MAX_KEYS_PER_GAME_PER_DAY - storedData.count} more keys for ${game.name} today. Please contact us on Telegram for more keys.`);
-            return;
-        }
+        // Remove limit check since we want to allow unlimited key generation
+        // Comment out or remove this block if no limit is desired
+        // if (storedData.count + keyCount > MAX_KEYS_PER_GAME_PER_DAY) {
+        //     alert(`You can generate only ${MAX_KEYS_PER_GAME_PER_DAY - storedData.count} more keys for ${game.name} today. Please contact us on Telegram for more keys.`);
+        //     return;
+        // }
 
         keyCountLabel.innerText = `Number of keys: ${keyCount}`;
 
@@ -217,7 +219,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>`;
         }
 
-        storedData.count += keyCount;
+        storedData.count += keyCount; // Update the count even if it's unlimited
         localStorage.setItem(storageKey, JSON.stringify(storedData));
 
         keyContainer.classList.remove('hidden');
