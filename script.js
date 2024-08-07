@@ -1,9 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const EVENTS_DELAY = 20000;
-const MAX_KEYS_PER_GAME_PER_DAY = 20000; // Updated maximum number of keys
-
-// Rest of the code remains the same
-
+    const MAX_KEYS_PER_GAME_PER_DAY = 600;
 
     const games = {
         1: {
@@ -145,10 +142,9 @@ const MAX_KEYS_PER_GAME_PER_DAY = 20000; // Updated maximum number of keys
         const storedData = JSON.parse(localStorage.getItem(storageKey));
 
         if (storedData.count + keyCount > MAX_KEYS_PER_GAME_PER_DAY) {
-    alert(`You can generate only ${MAX_KEYS_PER_GAME_PER_DAY - storedData.count} more keys for ${game.name} today. Please contact us on Telegram for more keys.`);
-    return;
-}
-
+            alert(`You can generate only ${MAX_KEYS_PER_GAME_PER_DAY - storedData.count} more keys for ${game.name} today. Please contact us on Telegram for more keys.`);
+            return;
+        }
 
         keyCountLabel.innerText = `Number of keys: ${keyCount}`;
 
