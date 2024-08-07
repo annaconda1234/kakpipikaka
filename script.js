@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const EVENTS_DELAY = 5000;  // Reduced delay to 5 seconds
-    const MAX_KEYS_PER_GAME_PER_DAY = 600;
+    const MAX_KEYS_PER_GAME_PER_DAY = Infinity; // Set to Infinity to make it unlimited
 
     const games = {
         1: {
@@ -141,10 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const storageKey = `keys_generated_${game.name}`;
         const storedData = JSON.parse(localStorage.getItem(storageKey));
 
-        if (storedData.count + keyCount > MAX_KEYS_PER_GAME_PER_DAY) {
-            alert(`You can generate only ${MAX_KEYS_PER_GAME_PER_DAY - storedData.count} more keys for ${game.name} today. Please contact us on Telegram for more keys.`);
-            return;
-        }
+        // Removed check for MAX_KEYS_PER_GAME_PER_DAY
 
         keyCountLabel.innerText = `Number of keys: ${keyCount}`;
 
@@ -174,16 +171,18 @@ document.addEventListener('DOMContentLoaded', () => {
             let clientToken;
             try {
                 clientToken = await login(clientId, game.appToken);
+                console.log(`Logged in with clientToken: ${clientToken}`);
             } catch (error) {
                 alert(`Failed to login: ${error.message}`);
                 startBtn.disabled = false;
                 return null;
             }
 
-            for (let i = 0; i < 11; i++) {
+            for (let i = 0; i < 5; i++) {  // Reduced iterations to 5
                 await sleep(EVENTS_DELAY * delayRandom());
                 const hasCode = await emulateProgress(clientToken, game.promoId);
-                updateProgress(7 / keyCount, 'Emulating progress...');
+                console.log(`Emulating progress, iteration ${i + 1}: hasCode = ${hasCode}`);
+                updateProgress(14 / keyCount, 'Emulating progress...');  // Adjusted progress increment
                 if (hasCode) {
                     break;
                 }
@@ -191,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             try {
                 const key = await generateKey(clientToken, game.promoId);
+                console.log(`Generated key: ${key}`);
                 updateProgress(30 / keyCount, 'Generating key...');
                 return key;
             } catch (error) {
