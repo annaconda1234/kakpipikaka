@@ -65,10 +65,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({ appToken, clientId, clientOrigin: 'deviceid' })
             });
 
+            const errorMessage = `Login failed: ${response.statusText} (Status Code: ${response.status})`;
+
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('Login failed:', errorData.message || response.statusText);
-                throw new Error(`Login failed: ${errorData.message || response.statusText}`);
+                console.error(errorMessage, errorData);
+                throw new Error(`${errorMessage}. Details: ${errorData.message || 'No additional details'}`);
             }
 
             const data = await response.json();
@@ -93,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                console.error('Failed to register event');
+                console.error('Failed to register event. Status:', response.status, response.statusText);
                 return false;
             }
 
@@ -114,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                console.error('Failed to generate key');
+                console.error('Failed to generate key. Status:', response.status, response.statusText);
                 throw new Error('Failed to generate key');
             }
 
@@ -211,13 +213,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        const keys = [];
-        for (let i = 0; i < keyCount; i++) {
-            const key = await generateKeyProcess();
-            if (key) keys.push(key);
-        }
+        const keys = await Promise.all(Array.from({ length: keyCount }, generateKeyProcess));
 
-        keysList.innerHTML = keys.map(key =>
+        keysList.innerHTML = keys.filter(key => key).map(key =>
             `<div class="key-item">
                 <input type="text" value="${key}" readonly>
                 <button class="copyKeyBtn" data-key="${key}">Copy Key</button>
