@@ -1,6 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const EVENTS_DELAY = 5000;  // Delay in milliseconds
-    const MAX_KEYS_PER_GAME_PER_DAY = Infinity; // Unlimited keys per game per day
+    const EVENTS_DELAY = 20000;
+const MAX_KEYS_PER_GAME_PER_DAY = 20000; // Updated maximum number of keys
+
+// Rest of the code remains the same
+
 
     const games = {
         1: {
@@ -58,87 +61,78 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const login = async (clientId, appToken) => {
-        try {
-            const response = await fetch('https://api.gamepromo.io/promo/login-client', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ appToken, clientId, clientOrigin: 'deviceid' })
-            });
+        const response = await fetch('https://api.gamepromo.io/promo/login-client', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                appToken,
+                clientId,
+                clientOrigin: 'deviceid'
+            })
+        });
 
-            const errorMessage = `Login failed: ${response.statusText} (Status Code: ${response.status})`;
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                console.error(errorMessage, errorData);
-                throw new Error(`${errorMessage}. Details: ${errorData.message || 'No additional details'}`);
-            }
-
-            const data = await response.json();
-            if (!data.clientToken) {
-                throw new Error('No clientToken received');
-            }
-
-            return data.clientToken;
-        } catch (error) {
-            console.error('Login error:', error.message);
-            alert(`Failed to login: ${error.message}`);
-            throw error;  // Re-throw the error for further handling
+        if (!response.ok) {
+            throw new Error('Failed to login');
         }
+
+        const data = await response.json();
+        return data.clientToken;
     };
 
     const emulateProgress = async (clientToken, promoId) => {
-        try {
-            const response = await fetch('https://api.gamepromo.io/promo/register-event', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${clientToken}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ promoId, eventId: generateUUID(), eventOrigin: 'undefined' })
-            });
+        const response = await fetch('https://api.gamepromo.io/promo/register-event', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${clientToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                promoId,
+                eventId: generateUUID(),
+                eventOrigin: 'undefined'
+            })
+        });
 
-            if (!response.ok) {
-                console.error('Failed to register event. Status:', response.status, response.statusText);
-                return false;
-            }
-
-            const data = await response.json();
-            return data.hasCode;
-        } catch (error) {
-            console.error('Error emulating progress:', error.message);
+        if (!response.ok) {
             return false;
         }
+
+        const data = await response.json();
+        return data.hasCode;
     };
 
     const generateKey = async (clientToken, promoId) => {
-        try {
-            const response = await fetch('https://api.gamepromo.io/promo/create-code', {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${clientToken}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ promoId })
-            });
+        const response = await fetch('https://api.gamepromo.io/promo/create-code', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${clientToken}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                promoId
+            })
+        });
 
-            if (!response.ok) {
-                console.error('Failed to generate key. Status:', response.status, response.statusText);
-                throw new Error('Failed to generate key');
-            }
-
-            const data = await response.json();
-            return data.promoCode;
-        } catch (error) {
-            console.error('Error generating key:', error.message);
-            throw error;
+        if (!response.ok) {
+            throw new Error('Failed to generate key');
         }
+
+        const data = await response.json();
+        return data.promoCode;
     };
 
     const generateUUID = () => {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-            const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
         });
     };
 
     const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
-    const delayRandom = () => Math.random() * 2000 + 1000; // Random delay between 1 and 3 seconds
+    const delayRandom = () => Math.random() / 3 + 1;
 
     initializeLocalStorage();
 
@@ -147,15 +141,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const keyCount = parseInt(keyCountSelect.value);
         const game = games[gameChoice];
 
-        if (!game) {
-            alert('Invalid game selected');
-            return;
-        }
-
         const storageKey = `keys_generated_${game.name}`;
         const storedData = JSON.parse(localStorage.getItem(storageKey));
 
+        if (storedData.count + keyCount > MAX_KEYS_PER_GAME_PER_DAY) {
+    alert(`You can generate only ${MAX_KEYS_PER_GAME_PER_DAY - storedData.count} more keys for ${game.name} today. Please contact us on Telegram for more keys.`);
+    return;
+}
+
+
         keyCountLabel.innerText = `Number of keys: ${keyCount}`;
+
         progressBar.style.width = '0%';
         progressText.innerText = '0%';
         progressLog.innerText = 'Starting...';
@@ -182,54 +178,56 @@ document.addEventListener('DOMContentLoaded', () => {
             let clientToken;
             try {
                 clientToken = await login(clientId, game.appToken);
-                console.log(`Logged in with clientToken: ${clientToken}`);
             } catch (error) {
+                alert(`Failed to login: ${error.message}`);
                 startBtn.disabled = false;
                 return null;
             }
 
-            let hasCode = false;
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 11; i++) {
                 await sleep(EVENTS_DELAY * delayRandom());
-                hasCode = await emulateProgress(clientToken, game.promoId);
-                console.log(`Emulating progress, iteration ${i + 1}: hasCode = ${hasCode}`);
-                updateProgress(14 / keyCount, 'Emulating progress...');
-                if (hasCode) break;
-            }
-
-            if (!hasCode) {
-                console.warn('No code available after emulating progress.');
-                return null;
+                const hasCode = await emulateProgress(clientToken, game.promoId);
+                updateProgress(7 / keyCount, 'Emulating progress...');
+                if (hasCode) {
+                    break;
+                }
             }
 
             try {
                 const key = await generateKey(clientToken, game.promoId);
-                console.log(`Generated key: ${key}`);
                 updateProgress(30 / keyCount, 'Generating key...');
                 return key;
             } catch (error) {
-                console.error('Error generating key:', error.message);
+                alert(`Failed to generate key: ${error.message}`);
                 return null;
             }
         };
 
         const keys = await Promise.all(Array.from({ length: keyCount }, generateKeyProcess));
 
-        keysList.innerHTML = keys.filter(key => key).map(key =>
-            `<div class="key-item">
-                <input type="text" value="${key}" readonly>
-                <button class="copyKeyBtn" data-key="${key}">Copy Key</button>
-            </div>`
-        ).join('');
-        if (keys.length > 0) copyAllBtn.classList.remove('hidden');
+        if (keys.length > 1) {
+            keysList.innerHTML = keys.filter(key => key).map(key =>
+                `<div class="key-item">
+                    <input type="text" value="${key}" readonly>
+                    <button class="copyKeyBtn" data-key="${key}">Copy Key</button>
+                </div>`
+            ).join('');
+            copyAllBtn.classList.remove('hidden');
+        } else if (keys.length === 1) {
+            keysList.innerHTML =
+                `<div class="key-item">
+                    <input type="text" value="${keys[0]}" readonly>
+                    <button class="copyKeyBtn" data-key="${keys[0]}">Copy Key</button>
+                </div>`;
+        }
 
-        storedData.count += keys.length;
+        storedData.count += keyCount;
         localStorage.setItem(storageKey, JSON.stringify(storedData));
 
         keyContainer.classList.remove('hidden');
         generatedKeysTitle.classList.remove('hidden');
         document.querySelectorAll('.copyKeyBtn').forEach(button => {
-            button.addEventListener('click', event => {
+            button.addEventListener('click', (event) => {
                 const key = event.target.getAttribute('data-key');
                 navigator.clipboard.writeText(key).then(() => {
                     copyStatus.classList.remove('hidden');
@@ -238,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
         copyAllBtn.addEventListener('click', () => {
-            const keysText = keys.join('\n');
+            const keysText = keys.filter(key => key).join('\n');
             navigator.clipboard.writeText(keysText).then(() => {
                 copyStatus.classList.remove('hidden');
                 setTimeout(() => copyStatus.classList.add('hidden'), 2000);
