@@ -186,14 +186,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 return null;
             }
 
+            let hasCode = false;
             for (let i = 0; i < 5; i++) {
                 await sleep(EVENTS_DELAY * delayRandom());
-                const hasCode = await emulateProgress(clientToken, game.promoId);
+                hasCode = await emulateProgress(clientToken, game.promoId);
                 console.log(`Emulating progress, iteration ${i + 1}: hasCode = ${hasCode}`);
                 updateProgress(14 / keyCount, 'Emulating progress...');
-                if (hasCode) {
-                    break;
-                }
+                if (hasCode) break;
+            }
+
+            if (!hasCode) {
+                console.warn('No code available after emulating progress.');
+                return null;
             }
 
             try {
@@ -202,29 +206,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateProgress(30 / keyCount, 'Generating key...');
                 return key;
             } catch (error) {
+                console.error('Error generating key:', error.message);
                 return null;
             }
         };
 
-        const keys = await Promise.all(Array.from({ length: keyCount }, generateKeyProcess));
+        const keys = [];
+        for (let i = 0; i < keyCount; i++) {
+            const key = await generateKeyProcess();
+            if (key) keys.push(key);
+        }
 
-        keysList.innerHTML = keys.filter(key => key).map(key =>
+        keysList.innerHTML = keys.map(key =>
             `<div class="key-item">
                 <input type="text" value="${key}" readonly>
                 <button class="copyKeyBtn" data-key="${key}">Copy Key</button>
             </div>`
         ).join('');
+        if (keys.length > 0) copyAllBtn.classList.remove('hidden');
 
-        if (keys.length > 0) {
-            copyAllBtn.classList.remove('hidden');
-        }
-
-        storedData.count += keyCount;
+        storedData.count += keys.length;
         localStorage.setItem(storageKey, JSON.stringify(storedData));
 
         keyContainer.classList.remove('hidden');
         generatedKeysTitle.classList.remove('hidden');
-
         document.querySelectorAll('.copyKeyBtn').forEach(button => {
             button.addEventListener('click', event => {
                 const key = event.target.getAttribute('data-key');
@@ -234,9 +239,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             });
         });
-
         copyAllBtn.addEventListener('click', () => {
-            const keysText = keys.filter(key => key).join('\n');
+            const keysText = keys.join('\n');
             navigator.clipboard.writeText(keysText).then(() => {
                 copyStatus.classList.remove('hidden');
                 setTimeout(() => copyStatus.classList.add('hidden'), 2000);
